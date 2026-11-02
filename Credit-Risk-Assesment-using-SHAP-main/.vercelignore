@@ -1,0 +1,16 @@
+# Vercel Deployment Ignore
+.git
+.github
+.venv
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+Credit_Risk.ipynb
+credit_risk_dataset.csv
+.system_generated/
+*.log
+

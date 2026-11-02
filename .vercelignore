@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.ipynb
+*.csv
+.system_generated/
+*.log
+

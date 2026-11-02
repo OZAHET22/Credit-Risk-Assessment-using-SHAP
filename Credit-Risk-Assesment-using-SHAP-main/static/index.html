@@ -1,0 +1,407 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Credit Ledger — Explainable Loan Underwriting & Risk Assessment</title>
+  <meta name="description" content="Professional ML-powered credit risk appraisal dashboard with calibrated default probabilities and SHAP explainability." />
+  <meta name="theme-color" content="#0b1118" />
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body id="top">
+
+  <!-- Accessibility Skip Link -->
+  <a href="#mainContent" class="skip-link">Skip to main underwriting content</a>
+
+  <!-- Top Navigation & Brand Bar -->
+  <header class="navbar" role="banner">
+    <div class="navbar__container">
+      <div class="brand">
+        <svg class="brand__seal" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+          <circle cx="20" cy="20" r="18" class="seal-outer" />
+          <circle cx="20" cy="20" r="14" class="seal-inner" />
+          <path d="M20 9 L20 31 M9 20 L31 20 M12 12 L28 28 M12 28 L28 12" class="seal-axes" />
+        </svg>
+        <div class="brand__text">
+          <span class="brand__title">CREDIT LEDGER</span>
+          <span class="brand__subtitle">Underwriting Desk &bull; XGBoost &bull; SHAP Explainability</span>
+        </div>
+      </div>
+
+      <div class="navbar__actions">
+        <div class="status-pill" id="apiStatus" aria-live="polite" role="status">
+          <span class="status-dot" id="apiDot" aria-hidden="true"></span>
+          <span class="status-text" id="apiStatusText">Connecting…</span>
+        </div>
+        <a href="/docs" target="_blank" rel="noopener noreferrer" class="nav-link" title="Open Swagger API Documentation">API Docs</a>
+        <a href="/health" target="_blank" rel="noopener noreferrer" class="nav-link" title="Check Health Status">Health</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Wrapper -->
+  <main class="app-layout" id="mainContent">
+
+    <!-- Scenario Presets Bar -->
+    <div class="presets-bar" aria-label="Demo Profiles">
+      <span class="presets-label">Quick Demo Profiles:</span>
+      <div class="presets-buttons">
+        <button type="button" class="preset-btn preset-btn--prime" data-preset="prime" title="Load a prime, low-risk borrower profile">
+          <span class="preset-indicator"></span> Prime (Low Risk)
+        </button>
+        <button type="button" class="preset-btn preset-btn--moderate" data-preset="moderate" title="Load a moderate, near-threshold borrower profile">
+          <span class="preset-indicator"></span> Moderate (Near-Prime)
+        </button>
+        <button type="button" class="preset-btn preset-btn--subprime" data-preset="subprime" title="Load a distressed, high-risk borrower profile">
+          <span class="preset-indicator"></span> Subprime (High Risk)
+        </button>
+      </div>
+    </div>
+
+    <!-- 2-Column Responsive Workspace Grid -->
+    <div class="workspace-grid">
+
+      <!-- Left Column: Loan Application Dossier -->
+      <section class="dossier-card" aria-labelledby="dossierHeading">
+        <div class="card-header">
+          <div>
+            <h2 id="dossierHeading" class="card-title">Borrower Dossier & Application File</h2>
+            <p class="card-desc">Enter applicant demographics, loan specifications, and credit bureau records.</p>
+          </div>
+          <button type="button" id="resetBtn" class="btn-ghost" title="Reset all input fields to defaults">Clear</button>
+        </div>
+
+        <form id="riskForm" class="form-dossier" novalidate>
+
+          <!-- Section 01: Applicant Profile -->
+          <fieldset class="form-section">
+            <legend class="section-legend">
+              <span class="legend-num">01</span>
+              <span class="legend-title">Applicant Demographics</span>
+            </legend>
+
+            <div class="fields-grid">
+              <!-- Age -->
+              <div class="form-group">
+                <label for="person_age" class="form-label">
+                  Age <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <input type="number" id="person_age" name="person_age" min="18" max="100" step="1" value="30" required inputmode="numeric" />
+                  <span class="input-affix">yrs</span>
+                </div>
+              </div>
+
+              <!-- Annual Income -->
+              <div class="form-group">
+                <label for="person_income" class="form-label">
+                  Annual Income <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <span class="input-affix input-affix--prefix">₹</span>
+                  <input type="number" id="person_income" name="person_income" min="0" step="1000" value="600000" required inputmode="decimal" />
+                </div>
+              </div>
+
+              <!-- Home Ownership -->
+              <div class="form-group">
+                <label for="person_home_ownership" class="form-label">
+                  Home Ownership <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <select id="person_home_ownership" name="person_home_ownership" required>
+                    <option value="RENT">Renting</option>
+                    <option value="MORTGAGE">Mortgage</option>
+                    <option value="OWN">Owns Outright</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Employment Length -->
+              <div class="form-group">
+                <label for="person_emp_length" class="form-label">
+                  Employment Length <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <input type="number" id="person_emp_length" name="person_emp_length" min="0" max="60" step="0.5" value="5" required inputmode="decimal" />
+                  <span class="input-affix">yrs</span>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Section 02: Loan Structure -->
+          <fieldset class="form-section">
+            <legend class="section-legend">
+              <span class="legend-num">02</span>
+              <span class="legend-title">Loan Structure & Leverage</span>
+            </legend>
+
+            <div class="fields-grid">
+              <!-- Purpose -->
+              <div class="form-group">
+                <label for="loan_intent" class="form-label">
+                  Loan Purpose <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <select id="loan_intent" name="loan_intent" required>
+                    <option value="PERSONAL">Personal Needs</option>
+                    <option value="EDUCATION">Education</option>
+                    <option value="MEDICAL">Medical Emergency</option>
+                    <option value="VENTURE">Venture / Business</option>
+                    <option value="HOMEIMPROVEMENT">Home Improvement</option>
+                    <option value="DEBTCONSOLIDATION">Debt Consolidation</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Loan Grade -->
+              <div class="form-group">
+                <label for="loan_grade" class="form-label">
+                  Internal Credit Grade <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <select id="loan_grade" name="loan_grade" required>
+                    <option value="A">Grade A (Prime)</option>
+                    <option value="B" selected>Grade B (Near-Prime)</option>
+                    <option value="C">Grade C (Standard)</option>
+                    <option value="D">Grade D (Moderate Risk)</option>
+                    <option value="E">Grade E (Higher Risk)</option>
+                    <option value="F">Grade F (Subprime)</option>
+                    <option value="G">Grade G (Distressed)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Principal Amount -->
+              <div class="form-group">
+                <label for="loan_amnt" class="form-label">
+                  Requested Principal <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <span class="input-affix input-affix--prefix">₹</span>
+                  <input type="number" id="loan_amnt" name="loan_amnt" min="500" step="500" value="100000" required inputmode="decimal" />
+                </div>
+              </div>
+
+              <!-- Interest Rate -->
+              <div class="form-group">
+                <label for="loan_int_rate" class="form-label">
+                  Annual Interest Rate <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <input type="number" id="loan_int_rate" name="loan_int_rate" min="1" max="45" step="0.05" value="11.5" required inputmode="decimal" />
+                  <span class="input-affix">%</span>
+                </div>
+              </div>
+
+              <!-- Debt-to-Income / Loan as % of Income -->
+              <div class="form-group form-group--full">
+                <div class="label-split">
+                  <label for="loan_percent_income" class="form-label">
+                    Debt-to-Income Leverage Ratio (DTI)
+                  </label>
+                  <span class="dti-badge dti-badge--safe" id="dtiBadge">Safe Leverage (&lt; 20%)</span>
+                </div>
+                <div class="input-wrap">
+                  <input type="number" id="loan_percent_income" name="loan_percent_income" min="0" max="1.5" step="0.01" value="0.17" required inputmode="decimal" />
+                  <span class="input-affix">ratio</span>
+                </div>
+                <span class="field-hint">Auto-calculated from Loan Amount &divide; Income. Direct factor in SHAP importance.</span>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Section 03: Credit History -->
+          <fieldset class="form-section">
+            <legend class="section-legend">
+              <span class="legend-num">03</span>
+              <span class="legend-title">Credit Bureau History</span>
+            </legend>
+
+            <div class="fields-grid">
+              <!-- Prior Default -->
+              <div class="form-group">
+                <label for="cb_person_default_on_file" class="form-label">
+                  Prior Default on Record <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <select id="cb_person_default_on_file" name="cb_person_default_on_file" required>
+                    <option value="N">No (Clean History)</option>
+                    <option value="Y">Yes (Prior Default Reported)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Credit History Length -->
+              <div class="form-group">
+                <label for="cb_person_cred_hist_length" class="form-label">
+                  Credit History Vintage <span class="req">*</span>
+                </label>
+                <div class="input-wrap">
+                  <input type="number" id="cb_person_cred_hist_length" name="cb_person_cred_hist_length" min="0" max="60" step="1" value="6" required inputmode="numeric" />
+                  <span class="input-affix">yrs</span>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Error Alert Banner -->
+          <div class="error-banner" id="errorNote" role="alert" hidden></div>
+
+          <!-- Submission Action Bar -->
+          <div class="form-actions">
+            <button type="submit" id="submitBtn" class="btn-primary">
+              <span class="btn-label">Assess Credit Risk</span>
+              <span class="btn-spinner" aria-hidden="true"></span>
+            </button>
+            <span class="action-note">Scored with calibrated XGBoost probability model</span>
+          </div>
+
+        </form>
+      </section>
+
+      <!-- Right Column: Live Risk Intelligence Deck (Sticky) -->
+      <aside class="intel-panel" aria-label="Underwriting Decision Deck">
+
+        <!-- Assessment Verdict Card -->
+        <div class="verdict-card" id="verdictCard">
+          <div class="verdict-header">
+            <h3 class="verdict-title">Underwriting Decision</h3>
+            <span class="verdict-badge" id="liveBadge">Ready to Score</span>
+          </div>
+
+          <!-- Circular Risk Gauge -->
+          <div class="gauge-container">
+            <div class="gauge-wrap">
+              <svg viewBox="0 0 200 200" class="gauge-svg" aria-hidden="true">
+                <defs>
+                  <linearGradient id="gaugeGradientSafe" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#38b2ac" />
+                    <stop offset="100%" stop-color="#48bb78" />
+                  </linearGradient>
+                  <linearGradient id="gaugeGradientRisk" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#f56565" />
+                    <stop offset="100%" stop-color="#e53e3e" />
+                  </linearGradient>
+                </defs>
+                <circle class="gauge-track" cx="100" cy="100" r="84" />
+                <circle class="gauge-fill" id="gaugeFill" cx="100" cy="100" r="84" />
+                <!-- Optimal Threshold Marker at ~69.5% -->
+                <line class="gauge-marker" id="gaugeThreshold" x1="100" y1="16" x2="100" y2="30" />
+              </svg>
+
+              <!-- Central Probability Readout -->
+              <div class="gauge-readout">
+                <span class="gauge-val" id="probNumber">--</span>
+                <span class="gauge-unit">%</span>
+                <span class="gauge-sub">Default Probability</span>
+              </div>
+            </div>
+
+            <!-- Decision Seal Stamp -->
+            <div class="stamp-stage">
+              <div class="decision-stamp" id="stampBadge">
+                <span class="stamp-title" id="stampText">PENDING</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ledger Metrics Table -->
+          <div class="metrics-grid">
+            <div class="metric-item">
+              <span class="metric-label">Assessed Risk Tier</span>
+              <span class="metric-val" id="factRiskTier">Awaiting scoring</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Decision Threshold</span>
+              <span class="metric-val font-mono" id="factThreshold">69.52%</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Safety Margin</span>
+              <span class="metric-val font-mono" id="factMargin">--</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Recommendation</span>
+              <span class="metric-val" id="factRecommendation">Submit dossier to compute</span>
+            </div>
+          </div>
+
+          <!-- Quick Deck Actions -->
+          <div class="deck-actions">
+            <button type="button" id="copyJsonBtn" class="btn-deck" title="Copy underwriting payload and response as JSON">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              Copy JSON
+            </button>
+            <button type="button" id="printMemoBtn" class="btn-deck" title="Print or save as PDF">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              Print Memo
+            </button>
+          </div>
+        </div>
+
+        <!-- Explainable AI (SHAP) Attribution Insights -->
+        <div class="shap-card">
+          <div class="shap-header">
+            <svg class="shap-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <h4 class="shap-title">XGBoost & SHAP Risk Drivers</h4>
+          </div>
+          <p class="shap-summary">
+            Global SHAP TreeExplainer ranking identifies these primary credit default drivers:
+          </p>
+          <ul class="shap-drivers">
+            <li>
+              <span class="driver-name">Loan % of Income (DTI)</span>
+              <span class="driver-badge driver-badge--high">Rank #1 Driver</span>
+            </li>
+            <li>
+              <span class="driver-name">Loan Interest Rate %</span>
+              <span class="driver-badge">Rank #2 Driver</span>
+            </li>
+            <li>
+              <span class="driver-name">Prior Default on Record</span>
+              <span class="driver-badge">Binary Shift</span>
+            </li>
+            <li>
+              <span class="driver-name">Annual Income &amp; Employment</span>
+              <span class="driver-badge">Capacity Anchor</span>
+            </li>
+          </ul>
+        </div>
+
+      </aside>
+
+    </div>
+
+  </main>
+
+  <!-- Footer & Compliance -->
+  <footer class="footer" role="contentinfo">
+    <div class="footer__inner">
+      <div class="footer__compliance">
+        <p class="footer__compliance-heading">Model Governance & Regulatory Compliance Disclosure</p>
+        <p class="footer__note">
+          Credit Ledger implements calibrated decision tree classification (XGBoost + CalibratedClassifierCV) with SHAP attribution for explainable AI governance. Predictions are probabilistic credit risk indicators engineered to assist licensed underwriters in accordance with fair lending principles (FCRA / ECOA alignment). No automated adverse action is taken without manual committee review.
+        </p>
+      </div>
+      <div class="footer__tags">
+        <span class="tag">FastAPI v0.115+</span>
+        <span class="tag">Scikit-Learn 1.6.1</span>
+        <span class="tag">XGBoost Calibrated</span>
+        <span class="tag">WCAG 2.1 AA Compliant</span>
+        <span class="tag">Vercel Serverless Ready</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
