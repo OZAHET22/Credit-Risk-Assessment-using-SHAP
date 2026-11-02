@@ -1,6 +1,10 @@
 # Explainable Credit Risk Assessment (FastAPI, XGBoost & SHAP)
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FOZAHET22%2FCredit-Risk-Assessment-using-SHAP)
+
 An end-to-end, enterprise-grade Machine Learning web application for consumer credit default risk appraisal, featuring probability calibration, SHAP (SHapley Additive exPlanations) interpretability, and a fully responsive FinTech underwriting dashboard.
+
+🔗 **GitHub Repository**: [https://github.com/OZAHET22/Credit-Risk-Assessment-using-SHAP](https://github.com/OZAHET22/Credit-Risk-Assessment-using-SHAP)
 
 ---
 
