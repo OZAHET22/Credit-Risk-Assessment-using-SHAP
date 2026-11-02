@@ -74,3 +74,4 @@ uvicorn main:app --host 127.0.0.1 --port 8000 --reload --app-dir Credit-Risk-Ass
 - **Web Dashboard**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 - **Swagger Documentation**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - **Health Check**: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+

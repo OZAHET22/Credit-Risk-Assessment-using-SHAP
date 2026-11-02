@@ -9,8 +9,10 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+*.ipynb
+*.csv
+*.log
+.system_generated/
+render.yaml
 Credit_Risk.ipynb
 credit_risk_dataset.csv
-.system_generated/
-*.log
-

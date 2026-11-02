@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import pandas as pd
 import joblib
@@ -63,6 +64,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def resolve_static_file(relative_path: str) -> Path:
+    """Locate static frontend assets across deployment configurations."""
+    candidates = [
+        BASE_DIR / "static" / relative_path,
+        Path.cwd() / "static" / relative_path,
+        BASE_DIR / "Credit-Risk-Assesment-using-SHAP-main" / "static" / relative_path,
+        Path.cwd() / "Credit-Risk-Assesment-using-SHAP-main" / "static" / relative_path,
+        BASE_DIR / relative_path,
+        Path.cwd() / relative_path,
+    ]
+    for c in candidates:
+        if c.exists() and c.is_file():
+            return c
+    return None
+
 # Validated Pydantic schema for loan application
 class LoanApplication(BaseModel):
     person_age: int = Field(..., ge=18, le=100, description="Applicant age in years")
@@ -77,7 +93,31 @@ class LoanApplication(BaseModel):
     cb_person_default_on_file: str = Field(..., description="Historical default on record: Y or N")
     cb_person_cred_hist_length: int = Field(..., ge=0, le=60, description="Credit history vintage in years")
 
+@app.get('/')
+@app.get('/api')
+@app.get('/api/')
+def read_root():
+    idx = resolve_static_file("index.html")
+    if idx:
+        return FileResponse(str(idx), media_type="text/html")
+    return {"status": "ok", "message": "Credit Risk Assessment API is running"}
+
+@app.get('/style.css')
+def get_style():
+    f = resolve_static_file("style.css")
+    if f:
+        return FileResponse(str(f), media_type="text/css")
+    raise HTTPException(status_code=404, detail="style.css not found")
+
+@app.get('/script.js')
+def get_script():
+    f = resolve_static_file("script.js")
+    if f:
+        return FileResponse(str(f), media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="script.js not found")
+
 @app.get('/health')
+@app.get('/api/health')
 def health():
     try:
         _, threshold = load_artifacts()
@@ -96,6 +136,7 @@ def health():
         }
 
 @app.post('/predict')
+@app.post('/api/predict')
 def predict(data: LoanApplication):
     try:
         model, threshold = load_artifacts()
@@ -140,7 +181,7 @@ def predict(data: LoanApplication):
         "dti_ratio": round(payload["loan_percent_income"], 4)
     }
 
-# Mount static frontend
+# Mount static directory for /static assets
 static_dirs = [
     BASE_DIR / "static",
     Path.cwd() / "static",
@@ -149,5 +190,5 @@ static_dirs = [
 ]
 for s_dir in static_dirs:
     if s_dir.exists():
-        app.mount("/", StaticFiles(directory=str(s_dir), html=True), name="static")
+        app.mount("/static", StaticFiles(directory=str(s_dir), html=True), name="static")
         break
